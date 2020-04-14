@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { IonicPage, NavController, NavParams, LoadingController, Loading } from 'ionic-angular';
 
-import { FilesystemDirectory, Plugins } from '@capacitor/core';
+import { FilesystemDirectory, Plugins, HttpOptions } from '@capacitor/core';
 import { SERVER_TRANSITION_PROVIDERS } from '@angular/platform-browser/src/browser/server-transition';
 
 const { Filesystem, Http } = Plugins;
@@ -20,6 +20,7 @@ const { Filesystem, Http } = Plugins;
 })
 export class HttpPage {
   serverUrl = 'http://localhost:3455';
+  socks = { host:'10.0.2.2', port: 9050, protocol: 'SOCKS' } as HttpOptions['proxy']
 
   output: string = '';
 
@@ -32,7 +33,7 @@ export class HttpPage {
     console.log('ionViewDidLoad KeyboardPage');
   }
 
-  async get(path = '/get', method = 'GET') {
+  async get(path = '/get', method = 'GET', proxy?: HttpOptions['proxy']) {
     this.output = '';
 
     this.loading = this.loadingCtrl.create({
@@ -49,7 +50,8 @@ export class HttpPage {
         },
         params: {
           'size': 'XL'
-        }
+        },
+        proxy
       });
       console.log('Got ret', ret);
       this.output = JSON.stringify(ret, null, 2);
@@ -63,6 +65,7 @@ export class HttpPage {
 
   getJson = () => this.get('/get-json');
   getHtml = () => this.get('/get-html');
+  getSocksProxy = () => this.get('/get', 'GET', this.socks)
 
   head = () => this.get('/head', 'HEAD');
   delete = () => this.mutate('/delete', 'DELETE', { title: 'foo', body: 'bar', userId: 1 });

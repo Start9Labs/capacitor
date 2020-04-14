@@ -30,6 +30,9 @@ export interface HttpOptions {
    * Extra arguments for fetch when running on the web
    */
   webFetchExtra?: RequestInit;
+  proxy?: {
+    host: string, port: number, protocol: 'HTTP' | 'SOCKS' | 'DIRECT' // Direct implies no proxy. Socks will allow for socks4 or socks5.
+  }
 }
 
 export interface HttpParams {

@@ -26,13 +26,19 @@ import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
+import java.net.Proxy;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import static java.net.Proxy.Type.DIRECT;
+import static java.net.Proxy.Type.HTTP;
+import static java.net.Proxy.Type.SOCKS;
 
 /**
  * Haptic engine plugin, also handles vibration.
@@ -79,7 +85,7 @@ public class Http extends Plugin {
 
       URL url = new URL(urlString);
 
-      HttpURLConnection conn = makeUrlConnection(url, method, connectTimeout, readTimeout, headers);
+      HttpURLConnection conn = makeUrlConnection(call, url, method, connectTimeout, readTimeout, headers);
 
       buildResponse(call, conn);
     } catch (MalformedURLException ex) {
@@ -100,7 +106,7 @@ public class Http extends Plugin {
 
       URL url = new URL(urlString);
 
-      HttpURLConnection conn = makeUrlConnection(url, method, connectTimeout, readTimeout, headers);
+      HttpURLConnection conn = makeUrlConnection(call, url, method, connectTimeout, readTimeout, headers);
 
       conn.setDoOutput(true);
 
@@ -118,8 +124,8 @@ public class Http extends Plugin {
     }
   }
 
-  private HttpURLConnection makeUrlConnection(URL url, String method, Integer connectTimeout, Integer readTimeout, JSObject headers) throws Exception {
-    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+  private HttpURLConnection makeUrlConnection(PluginCall call, URL url, String method, Integer connectTimeout, Integer readTimeout, JSObject headers) throws Exception {
+    HttpURLConnection conn = initUrlConnection(call, url);
 
     conn.setAllowUserInteraction(false);
     conn.setRequestMethod(method);
@@ -136,6 +142,25 @@ public class Http extends Plugin {
 
     return conn;
   }
+
+  private HttpURLConnection initUrlConnection(PluginCall call, URL url) throws IOException {
+    JSObject proxy = call.getObject("proxy");
+    String host = proxy.getString("host");
+    Integer port = proxy.getInteger("port");
+    String protocol = proxy.getString("protocol");
+
+    if(host != null && port != null){
+      Proxy p;
+      switch (protocol) {
+        case "SOCKS" : p = new Proxy(SOCKS, new InetSocketAddress(host, port)); break;
+        case "HTTP": p = new Proxy(HTTP, new InetSocketAddress(host, port)); break;
+        default: p = new Proxy(DIRECT, new InetSocketAddress(host, port)); break;
+      }
+      return (HttpURLConnection) url.openConnection(p);
+    }
+    return (HttpURLConnection) url.openConnection();
+  }
+
 
   @SuppressWarnings("unused")
   @PluginMethod()
@@ -158,7 +183,7 @@ public class Http extends Plugin {
 
         File file = FilesystemUtils.getFileObject(getContext(), filePath, fileDirectory);
 
-        HttpURLConnection conn = makeUrlConnection(url, "GET", connectTimeout, readTimeout, headers);
+        HttpURLConnection conn = makeUrlConnection(call, url, "GET", connectTimeout, readTimeout, headers);
 
         InputStream is = conn.getInputStream();
 
@@ -259,7 +284,7 @@ public class Http extends Plugin {
         this.freeSavedCall();
         File file = FilesystemUtils.getFileObject(getContext(), filePath, fileDirectory);
 
-        HttpURLConnection conn = makeUrlConnection(url, "POST", connectTimeout, readTimeout, headers);
+        HttpURLConnection conn = makeUrlConnection(call, url, "POST", connectTimeout, readTimeout, headers);
         conn.setDoOutput(true);
 
         FormUploader builder = new FormUploader(conn);

@@ -206,17 +206,20 @@ enum BridgeError: Error {
    * Set up our Cordova compat by loading all known Cordova plugins and injecting
    * their JS.
    */
+  private var injectCordovaFiles = false
+
+
   func setupCordovaCompatibility() {
-    var injectCordovaFiles = false
-    var numClasses = UInt32(0);
-    let classes = objc_copyClassList(&numClasses)
-    for i in 0..<Int(numClasses) {
-      let c: AnyClass = classes![i]
-      if class_getSuperclass(c) == CDVPlugin.self {
-        injectCordovaFiles = true
-        break
-      }
-    }
+    // var injectCordovaFiles = false
+    // var numClasses = UInt32(0);
+    // let classes = objc_copyClassList(&numClasses)
+    // for i in 0..<Int(numClasses) {
+    //   let c: AnyClass = classes![i]
+    //   if class_getSuperclass(c) == CDVPlugin.self {
+    //     injectCordovaFiles = true
+    //     break
+    //   }
+    // }
     if injectCordovaFiles {
       exportCordovaJS()
       registerCordovaPlugins()
@@ -246,18 +249,38 @@ enum BridgeError: Error {
    * Register all plugins that have been declared
    */
   func registerPlugins() {
-    var numClasses = UInt32(0);
-    let classes = objc_copyClassList(&numClasses)
-    for i in 0..<Int(numClasses) {
-      let c: AnyClass = classes![i]
-      if class_conformsToProtocol(c, CAPBridgedPlugin.self) {
-        let pluginClassName = NSStringFromClass(c)
-        let pluginType = c as! CAPPlugin.Type
-        let bridgeType = c as! CAPBridgedPlugin.Type
+    // var numClasses = UInt32(0);
+    // let classes = objc_copyClassList(&numClasses)
+    // for i in 0..<Int(numClasses) {
+    //   let c: AnyClass = classes![i]
+    //   if class_conformsToProtocol(c, CAPBridgedPlugin.self) {
+    //     let pluginClassName = NSStringFromClass(c)
+    //     let pluginType = c as! CAPPlugin.Type
+    //     let bridgeType = c as! CAPBridgedPlugin.Type
         
-        registerPlugin(pluginClassName, bridgeType.jsName(), pluginType)
+    //     registerPlugin(pluginClassName, bridgeType.jsName(), pluginType)
+    //   }
+    // }
+    let classCount = objc_getClassList(nil, 0)
+    let classes = UnsafeMutablePointer<AnyClass?>.allocate(capacity: Int(classCount))
+    let releasingClasses = AutoreleasingUnsafeMutablePointer<AnyClass>(classes)
+    let numClasses: Int32 = objc_getClassList(releasingClasses, classCount)
+
+    for i in 0..<Int(numClasses) {
+      if let c: AnyClass = classes[i] {
+        if class_getSuperclass(c) == CDVPlugin.self {
+          injectCordovaFiles = true
+        }
+        if class_conformsToProtocol(c, CAPBridgedPlugin.self) {
+          let pluginClassName = NSStringFromClass(c)
+          let pluginType = c as! CAPPlugin.Type
+          let bridgeType = c as! CAPBridgedPlugin.Type
+
+          registerPlugin(pluginClassName, bridgeType.jsName(), pluginType)
+        }
       }
     }
+    classes.deallocate()
   }
   
   /**
