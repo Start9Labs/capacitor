@@ -1,3 +1,4 @@
+import CoreFoundation
 import Foundation
 import AudioToolbox
 
@@ -46,7 +47,7 @@ public class CAPHttpPlugin: CAPPlugin {
       return call.reject("Invalid URL")
     }
     
-    let task = URLSession.shared.downloadTask(with: url) { (downloadLocation, response, error) in
+    let task = acquireSession(call).downloadTask(with: url) { (downloadLocation, response, error) in
       if error != nil {
         CAPLog.print("Error on download file", downloadLocation, response, error)
         call.reject("Error", error, [:])
@@ -121,7 +122,7 @@ public class CAPHttpPlugin: CAPPlugin {
 
     request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
     
-    let task = URLSession.shared.uploadTask(with: request, from: fullFormData) { (data, response, error) in
+    let task = acquireSession(call).uploadTask(with: request, from: fullFormData) { (data, response, error) in
       if error != nil {
         CAPLog.print("Error on upload file", data, response, error)
         call.reject("Error", error, [:])
@@ -239,7 +240,7 @@ public class CAPHttpPlugin: CAPPlugin {
     
     setRequestHeaders(&request, headers)
 
-    let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+    let task = acquireSession(call).dataTask(with: request) { (data, response, error) in
       if error != nil {
         call.reject("Error", error, [:])
         return
@@ -290,7 +291,7 @@ public class CAPHttpPlugin: CAPPlugin {
       }
     }
 
-    let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+    let task = acquireSession(call).dataTask(with: request) { (data, response, error) in
       if error != nil {
         call.reject("Error", error, [:])
         return
@@ -391,5 +392,40 @@ public class CAPHttpPlugin: CAPPlugin {
     data.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
     
     return data
+  }
+
+  func acquireSession(_ call: CAPPluginCall) -> URLSession {
+    guard let proxy = call.getObject("proxy") else {
+        return URLSession.shared
+    }
+    let host = proxy["host"]! as! String
+    let port = proxy["port"]! as! UInt16
+    let proto: String = proxy["protocol"]! as! String
+    let cfg = URLSessionConfiguration.default
+    cfg.connectionProxyDictionary = [AnyHashable: Any]()
+    switch proto {
+      case "SOCKS":
+        cfg.connectionProxyDictionary = [
+          kCFProxyTypeKey: kCFProxyTypeSOCKS,
+          kCFStreamPropertySOCKSProxyHost: host,
+          kCFStreamPropertySOCKSProxyPort: port
+        ]
+        if #available(iOSApplicationExtension 13.0, *), #available(iOS 13.0, *) {
+          cfg.tlsMaximumSupportedProtocolVersion = .TLSv12
+        } else {
+          cfg.tlsMinimumSupportedProtocol = .tlsProtocol12
+        }
+        return URLSession.init(configuration: cfg)
+      case "HTTP":
+        cfg.connectionProxyDictionary = [
+            kCFNetworkProxiesHTTPEnable: 1,
+            kCFNetworkProxiesHTTPProxy: host,
+            kCFNetworkProxiesHTTPPort:  port,
+            kCFStreamPropertyHTTPSProxyHost: host,
+            kCFStreamPropertyHTTPSProxyPort: port
+        ]
+        return URLSession.init(configuration: cfg)
+      default: return URLSession.shared
+    }
   }
 }

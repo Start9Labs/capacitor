@@ -19,8 +19,8 @@ const { Filesystem, Http } = Plugins;
   templateUrl: 'http.html',
 })
 export class HttpPage {
-  serverUrl = 'http://localhost:3455';
-  socks = { host:'10.0.2.2', port: 9050, protocol: 'SOCKS' } as HttpOptions['proxy']
+  serverUrl = 'letoejheu6ka4hkcr3uzro342lxp64m6x4xhiycdrwve5gtm44q3p2yd.onion:5959';
+  socks = { host:'127.0.0.1', port: 9050, protocol: 'SOCKS' } as HttpOptions['proxy']
 
   output: string = '';
 
@@ -65,7 +65,7 @@ export class HttpPage {
 
   getJson = () => this.get('/get-json');
   getHtml = () => this.get('/get-html');
-  getSocksProxy = () => this.get('/get', 'GET', this.socks)
+  getSocksProxy = () => this.get('/version', 'GET', this.socks)
 
   head = () => this.get('/head', 'HEAD');
   delete = () => this.mutate('/delete', 'DELETE', { title: 'foo', body: 'bar', userId: 1 });
