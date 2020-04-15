@@ -395,9 +395,12 @@ public class CAPHttpPlugin: CAPPlugin {
   }
 
   func acquireSession(_ call: CAPPluginCall) -> URLSession {
+    print("acquireSession")
     guard let proxy = call.getObject("proxy") else {
+        print("gg fam")
         return URLSession.shared
     }
+    print("proxy: \(proxy)")
     let host = proxy["host"]! as! String
     let port = proxy["port"]! as! UInt16
     let proto: String = proxy["protocol"]! as! String
@@ -405,6 +408,7 @@ public class CAPHttpPlugin: CAPPlugin {
     cfg.connectionProxyDictionary = [AnyHashable: Any]()
     switch proto {
       case "SOCKS":
+        print("we doin socks")
         cfg.connectionProxyDictionary = [
           kCFProxyTypeKey: kCFProxyTypeSOCKS,
           kCFStreamPropertySOCKSProxyHost: host,
@@ -415,8 +419,9 @@ public class CAPHttpPlugin: CAPPlugin {
         } else {
           cfg.tlsMinimumSupportedProtocol = .tlsProtocol12
         }
-        return URLSession.init(configuration: cfg)
+        return URLSession(configuration: cfg)
       case "HTTP":
+        print("how in the fuck")
         cfg.connectionProxyDictionary = [
             kCFNetworkProxiesHTTPEnable: 1,
             kCFNetworkProxiesHTTPProxy: host,
@@ -425,7 +430,9 @@ public class CAPHttpPlugin: CAPPlugin {
             kCFStreamPropertyHTTPSProxyPort: port
         ]
         return URLSession.init(configuration: cfg)
-      default: return URLSession.shared
+      default:
+        print("fuck you too, man")
+        return URLSession.shared
     }
   }
 }

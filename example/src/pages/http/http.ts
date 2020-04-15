@@ -20,7 +20,7 @@ const { Filesystem, Http } = Plugins;
 })
 export class HttpPage {
   serverUrl = 'letoejheu6ka4hkcr3uzro342lxp64m6x4xhiycdrwve5gtm44q3p2yd.onion:5959';
-  socks = { host:'127.0.0.1', port: 9050, protocol: 'SOCKS' } as HttpOptions['proxy']
+  socks = { host:'localhost', port: 9050, protocol: 'SOCKS' } as HttpOptions['proxy']
 
   output: string = '';
 
